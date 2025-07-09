@@ -4,6 +4,7 @@ from functools import reduce
 
 import hist
 import numpy as np
+from scipy.interpolate import make_smoothing_spline
 
 from wums import logging
 
@@ -233,6 +234,7 @@ def concatenateHists(h1, h2, allowBroadcast=True, by_ax_name=True, flow=False):
         h2 = broadcastSystHist(h2, h1, flow=flow, by_ax_name=by_ax_name)
 
     axes = []
+
     for ax1, ax2 in zip(h1.axes, h2.axes):
         if ax1 == ax2:
             axes.append(ax1)
@@ -263,7 +265,7 @@ def concatenateHists(h1, h2, allowBroadcast=True, by_ax_name=True, flow=False):
                 )
             else:
                 raise ValueError(
-                    f"Cannot concatenate hists with inconsistent axes: {ax1.name} and {ax2.name}"
+                    f"Cannot concatenate hists with inconsistent axes: {ax1.name}: ({ax1.edges}) and {ax2.name}: ({ax2.edges})"
                 )
 
     newh = hist.Hist(*axes, storage=h1.storage_type())
@@ -1146,3 +1148,42 @@ def rssHistsMid(h, syst_axis, scale=1.0):
     hDown = addHists(hnom, hrss[{"downUpVar": -1j}], scale2=-1.0)
 
     return hUp, hDown
+
+def smooth_hist(h, smooth_ax_name, exclude_axes=[], start_bin=0, end_bin=None):
+
+    hnew = h.copy()
+
+    smooth_ax = h.axes[smooth_ax_name]
+    hproj = h.project(smooth_ax_name, *[ax for ax in h.axes.name if ax not in [smooth_ax_name, *exclude_axes]])
+    smoothh = hproj.copy()
+
+    # Reshape before looping over all other bins and smoothing along the relevant axis
+    vals = smoothh.values().reshape(smooth_ax.size, -1)
+    if not end_bin:
+        end_bin = vals.shape[0]
+
+    # Correct for bin width
+    binw = smoothh.axes[smooth_ax_name].edges[1:]-smoothh.axes[smooth_ax_name].edges[:-1]
+    vals = (vals.T/binw).T
+
+    for b in range(vals.shape[-1]):
+        spl = make_smoothing_spline(smooth_ax.centers[start_bin:end_bin], vals[start_bin:end_bin,b])
+        vals[start_bin:end_bin,b] = spl(smooth_ax.centers[start_bin:end_bin])
+
+    #Recorrect for bin width
+    vals = (vals.T*binw).T
+
+    smoothh.values()[...] = vals.reshape(smoothh.shape)
+
+    if not exclude_axes:
+        return smoothh.project(*hnew.axes.name)
+
+    # If some axis has been excluded, broadcast it back 
+    smoothfac = divideHists(smoothh, hproj).project(*[ax for ax in h.axes.name if ax not in exclude_axes])
+
+    # Broadcast over excluded axes
+    indices = tuple(
+        None if ax in exclude_axes else slice(None) for ax in h.axes.name
+    )
+    hnew.values()[...] = h.values() * smoothfac.values()[indices]
+    return hnew

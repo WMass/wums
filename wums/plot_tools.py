@@ -1072,6 +1072,7 @@ def makePlotWithRatioToRef(
     cms_label=None,
     cutoff=1e-6,
     only_ratio=False,
+    ratio_legend=True,
     width_scale=1,
     automatic_scale=True,
     base_size=8,
@@ -1230,7 +1231,7 @@ def makePlotWithRatioToRef(
             fill_between=fill_between,
             dataIdx=dataIdx,
             baseline=baseline,
-            add_legend=not only_ratio,
+            add_legend=ratio_legend and not only_ratio,
         )
         if midratio_hists:
             plotRatio(
