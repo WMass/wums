@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 import json
-
+import pickle    
 import lz4.frame
 import numpy as np
 
@@ -202,3 +202,19 @@ def write_index_and_log(
 ):
     write_indexfile(outpath, template_dir)
     write_logfile(outpath, logname, args, analysis_meta_info)
+
+def write_lz4_pkl_output(
+    outfile, outfolder, output_dict, basedir, args=None, file_meta_data=None
+):
+    
+    if not outfile.endswith(".pkl.lz4"):
+        outfile += ".pkl.lz4"
+
+    result_dict = {
+        outfolder : output_dict,
+        "meta_data": make_meta_info_dict(args=args, wd=basedir),
+    }
+    if file_meta_data is not None:
+        result_dict["file_meta_data"] = file_meta_data
+    with lz4.frame.open(outfile, "wb") as f:
+        pickle.dump(result_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
