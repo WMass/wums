@@ -455,8 +455,8 @@ def compatibleBins(edges1, edges2):
 
 def rebinHistMultiAx(h, axes, edges=[], lows=[], highs=[]):
     # edges: lists of new edges or integers to merge bins, in case new edges are given the lows and highs will be ignored
-    # lows: list of new lower boundaries
-    # highs: list of new upper boundaries
+    # lows: list of new lower boundaries or bins
+    # highs: list of new upper boundaries or bins
 
     sel = {}
     for ax, low, high, rebin in itertools.zip_longest(axes, lows, highs, edges):
@@ -467,10 +467,16 @@ def rebinHistMultiAx(h, axes, edges=[], lows=[], highs=[]):
             h = rebinHist(h, ax, rebin)
         elif low is not None and high is not None:
             # in case high edge is upper edge of last bin we need to manually set the upper limit
-            upper = hist.overflow if high == h.axes[ax].edges[-1] else complex(0, high)
-            logger.info(f"Restricting the axis '{ax}' to range [{low}, {high}]")
+            # distinguish case with pure real or imaginary number (to select index or value, respectively)
+            # in the former case, force casting into integer
+            if isinstance(high, int):
+                upper = hist.overflow if high == h.axes[ax].size else high
+            elif isinstance(high, complex):
+                high_imag = high.imag
+                upper = hist.overflow if high_imag == h.axes[ax].edges[-1] else high
+            logger.info(f"Slicing the axis '{ax}' to [{low}, {upper}]")
             sel[ax] = slice(
-                complex(0, low), upper, hist.rebin(rebin) if rebin else None
+                low, upper, hist.rebin(rebin) if rebin else None
             )
         elif type(rebin) == int and rebin > 1:
             logger.info(f"Rebinning the axis '{ax}' by [{rebin}]")
