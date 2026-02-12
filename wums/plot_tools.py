@@ -622,7 +622,6 @@ def add_decor(
                     and key in inspect.getfullargspec(hep.label.exp_text).kwonlyargs
                 ):
                     kwargs.setdefault(key, value)
-            kwargs.setdefault("italic", (False, True, False))
             kwargs.setdefault("exp", title)
             return hep.label.exp_text(text=text, **kwargs)
 
@@ -634,7 +633,6 @@ def add_decor(
                     and key in inspect.getfullargspec(hep.label.exp_text).kwonlyargs
                 ):
                     kwargs.setdefault(key, value)
-            kwargs.setdefault("italic", (False, True, False))
             kwargs.setdefault("exp", title)
             return hep.label.exp_label(**kwargs)
 
@@ -645,37 +643,10 @@ def add_decor(
             ax=ax,
             lumi=lumi,
             lumi_format="{}" if isinstance(lumi, (list, tuple, np.ndarray)) else "{0:.3g}",
-            fontsize=text_size,
             text=label,
             data=data,
             loc=loc,
         )
-
-    # else:
-    #     if loc==0:
-    #         # above frame
-    #         x = 0.0
-    #         y = 1.0
-    #     elif loc==1:
-    #         # in frame
-    #         x = 0.05
-    #         y = 0.88
-    #     elif loc==2:
-    #         # upper left, label below title
-    #         x = 0.05
-    #         y = 0.88
-    #     elif loc==2:
-    #         #
-    #     ax.text(
-    #         x,
-    #         y,
-    #         args.title,
-    #         transform=ax1.transAxes,
-    #         fontweight="bold",
-    #         fontsize=1.2 * text_size,
-    #     )
-    #     if label is not None:
-    #         ax.text(0.05, 0.80, label, transform=ax.transAxes, fontstyle="italic")
 
 
 def makeStackPlotWithRatio(

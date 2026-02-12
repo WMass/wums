@@ -310,8 +310,8 @@ def addHists(
 
     h1vals, h2vals, h1vars, h2vars = valsAndVariances(h1, h2, flow=flow)
     hasWeights = (
-        h1._storage_type() == hist.storage.Weight()
-        and h2._storage_type() == hist.storage.Weight()
+        h1.storage_type() == hist.storage.Weight()
+        and h2.storage_type() == hist.storage.Weight()
     )
     # avoid scaling the variance if not needed, to save some time
     # I couldn't use hvals *= scale, otherwise I get this error: ValueError: output array is read-only
@@ -342,7 +342,7 @@ def addHists(
             outvars = h1vars if h1.shape == outh.shape else h2vars
             np.add(h1vars, h2vars, out=outvars)
             outh.variances(flow=True)[...] = outvars
-        elif h1._storage_type() == hist.storage.Weight():
+        elif h1.storage_type() == hist.storage.Weight():
             logger.debug(
                 "Histogram h1 has weights but h2 not, values for h1 are updated but variances not."
             )
@@ -821,9 +821,9 @@ def unrolledHist(h, obs=None, binwnorm=None, add_flow_bins=False):
     bins = np.prod(hproj.axes.extent) if add_flow_bins else np.prod(hproj.axes.size)
     newh = hist.Hist(
         hist.axis.Integer(0, bins, underflow=False, overflow=False),
-        storage=hproj._storage_type(),
+        storage=hproj.storage_type(),
     )
-    if hproj._storage_type() == hist.storage.Double():
+    if hproj.storage_type() == hist.storage.Double():
         newh.view(flow=False)[...] = np.ravel(hproj.values(flow=add_flow_bins)) * scale
     else:
         newh.view(flow=False)[...] = np.stack(
