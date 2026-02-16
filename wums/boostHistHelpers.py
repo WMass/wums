@@ -512,23 +512,8 @@ def mirrorAxes(h, axes, flow=True):
     return h
 
 
-def disableAxisFlow(ax, under=False, over=False):
-    if isinstance(ax, hist.axis.Integer):
-        args = [int(ax.edges[0]), int(ax.edges[-1])]
-    elif isinstance(ax, hist.axis.Regular):
-        args = [ax.size, ax.edges[0], ax.edges[-1]]
-    else:
-        args = [ax.edges]
-
-    return type(ax)(
-        *args,
-        name=ax.name,
-        overflow=over,
-        underflow=under,
-        circular=ax.traits.circular,
-    )
-
-def enableAxisFlow(ax, overflow=True, underflow=True):
+def setAxisFlow(ax, under=None, over=None):
+    # over/under modifies the overflow or underflow, 'None' to leave it unchanged
     if isinstance(ax, hist.axis.Integer):
         args = [ax.edges[0], ax.edges[-1]]
     elif isinstance(ax, hist.axis.Regular):
@@ -539,40 +524,70 @@ def enableAxisFlow(ax, overflow=True, underflow=True):
     return type(ax)(
         *args,
         name=ax.name,
-        overflow=overflow,
-        underflow=underflow,
+        overflow=over if over is not None else ax.traits.overflow,
+        underflow=under if under is not None else ax.traits.underflow,
         circular=ax.traits.circular,
     )
 
-def disableFlow(h, axis_name=None, under=False, over=False):
-    # axes_name can be 'None' for all axes, a string or a list of strings with the axis name(s) to disable the flow
-    if axis_name is None:
-        axis_name = [n for n in h.axes.name]
-    
-    if not isinstance(axis_name, str):
-        for var in axis_name:
-            if var in h.axes.name:
-                h = disableFlow(h, var)
-        return h
 
-    # disable the overflow and underflow bins of a single axis, while keeping the flow bins of other axes
-    ax = h.axes[axis_name]
-    ax_idx = [a.name for a in h.axes].index(axis_name)
-    new_ax = disableAxisFlow(ax, under=under, over=over)
+def disableFlow(h, axes_names=None):
+    return setFlow(h, axes_names=axes_names, under=False, over=False)
+
+
+def enableFlow(h, axes_names=None, default_values=0.0, default_variances=0.0):
+    return setFlow(h, axes_names=axes_names, default_values=default_values, default_variances=default_variances, under=True, over=True)
+
+
+def setFlow(h, axes_names=None, under=None, over=None, default_values=0.0, default_variances=0.0):
+    # axes_name can be 'None' for all axes, a string or a list of strings with the axis name(s) to enable/disable the flow
+    if axes_names is None:
+        axes_names = [n for n in h.axes.name]
+    
+    if isinstance(axes_names, str):
+        axes_names = [axes_names]
+
     axes = list(h.axes)
-    axes[ax_idx] = new_ax
+    source_slices = [slice(None)] * len(axes)
+    target_slices = [slice(None)] * len(axes)
+
+    for axis_name in axes_names:
+        if axis_name not in h.axes.name:
+            continue
+
+        # enable/disable the overflow and underflow bins of a single axis, while keeping the flow bins of other axes
+        ax = h.axes[axis_name]
+
+        if under is None:
+            under = ax.traits.underflow
+        if over is None:
+            over = ax.traits.overflow
+
+        ax_idx = [a.name for a in axes].index(axis_name)
+        new_ax = setAxisFlow(ax, under=under, over=over)
+        axes[ax_idx] = new_ax
+        
+        lo = int(ax.traits.underflow and not new_ax.traits.underflow)
+        hi = lo + ax.size + int(ax.traits.overflow and new_ax.traits.overflow)
+        source_slices[ax_idx] = slice(lo, hi)
+
+        lo = int(new_ax.traits.underflow and not ax.traits.underflow)
+        hi = lo + ax.size + int(ax.traits.overflow and new_ax.traits.overflow)
+        target_slices[ax_idx] = slice(lo, hi)
+
+    source_slices = tuple(source_slices)
+    target_slices = tuple(target_slices)   
+
     hnew = hist.Hist(*axes, name=h.name, storage=h.storage_type())
-    slices = [
-        (
-            slice(None)
-            if i != ax_idx
-            else slice(ax.traits.underflow * (not under), ax.size + ax.traits.underflow + ax.traits.overflow * over)
-        )
-        for i in range(len(axes))
-    ]
-    hnew.values(flow=True)[...] = h.values(flow=True)[tuple(slices)]
+
+    # set default values and variances for new flow bins
+    hnew.values(flow=True)[...] = np.ones_like(hnew.values(flow=True)) * default_values
     if hnew.storage_type == hist.storage.Weight:
-        hnew.variances(flow=True)[...] = h.variances(flow=True)[tuple(slices)]
+        hnew.variances(flow=True)[...] = np.ones_like(hnew.values(flow=True)) * default_variances
+
+    hnew.values(flow=True)[target_slices] = h.values(flow=True)[source_slices]
+    if hnew.storage_type == hist.storage.Weight:
+        hnew.variances(flow=True)[target_slices] = h.variances(flow=True)[source_slices]
+
     return hnew
 
 
