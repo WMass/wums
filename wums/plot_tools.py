@@ -534,6 +534,8 @@ def addLegend(
             transform=transform,
         )
 
+    return leg
+
 
 def get_textsize(ax, text_size):
     if text_size == "large" or text_size is None:
