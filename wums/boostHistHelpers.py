@@ -512,6 +512,14 @@ def mirrorAxes(h, axes, flow=True):
     return h
 
 
+def disableAxisFlow(ax):
+    return setAxisFlow(ax, under=False, over=False)
+
+
+def enableAxisFlow(ax):
+    return setAxisFlow(ax, under=True, over=True)
+
+
 def setAxisFlow(ax, under=None, over=None):
     # over/under modifies the overflow or underflow, 'None' to leave it unchanged
     if isinstance(ax, hist.axis.Integer):
