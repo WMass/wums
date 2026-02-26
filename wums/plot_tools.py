@@ -1074,6 +1074,35 @@ def makePlotWithRatioToRef(
     swap_ratio_panels=False,
     select={},
 ):
+    def _auto_ratio_range(rhists, pad_frac=0.05):
+        min_y = np.inf
+        max_y = -np.inf
+        for rh in rhists:
+            values = np.asarray(rh.values(flow=False))
+            if values.size == 0:
+                continue
+            variances = rh.variances(flow=False)
+            if variances is not None:
+                errors = np.sqrt(np.where(variances >= 0, variances, np.nan))
+                lows = values - errors
+                highs = values + errors
+            else:
+                lows = values
+                highs = values
+            valid_lows = lows[np.isfinite(lows)]
+            valid_highs = highs[np.isfinite(highs)]
+            if valid_lows.size == 0 or valid_highs.size == 0:
+                continue
+            min_y = min(min_y, float(np.min(valid_lows)))
+            max_y = max(max_y, float(np.max(valid_highs)))
+
+        if not np.isfinite(min_y) or not np.isfinite(max_y):
+            return None
+
+        half_width = max(abs(max_y - 1.0), abs(1.0 - min_y))
+        half_width = max(half_width * (1.0 + max(0.0, pad_frac)), 0.005)
+        return [1.0 - half_width, 1.0 + half_width]
+
     if select:
         hists = [h[select] for h in hists]
 
@@ -1252,6 +1281,16 @@ def makePlotWithRatioToRef(
                 baseline=baseline,
                 add_legend=False,
             )
+
+    if autorrange not in (None, False):
+        pad_frac = 0.05 if autorrange is True else float(autorrange)
+        auto_main = _auto_ratio_range(ratio_hists, pad_frac=pad_frac)
+        if auto_main is not None:
+            ax2.set_ylim(*auto_main)
+        if midratio_hists:
+            auto_mid = _auto_ratio_range(midratio_hists, pad_frac=pad_frac)
+            if auto_mid is not None:
+                ratio_axes[midratio_axes_idx].set_ylim(*auto_mid)
 
     if not only_ratio:
         addLegend(
