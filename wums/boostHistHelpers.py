@@ -525,6 +525,10 @@ def enableAxisFlow(ax):
 
 def setAxisFlow(ax, under=None, over=None):
     # over/under modifies the overflow or underflow, 'None' to leave it unchanged
+    if isinstance(ax, (hist.axis.StrCategory, hist.axis.IntCategory)):
+        # category axes have no conventional under/overflow to toggle, and their
+        # constructor takes neither 'underflow' nor 'circular' -> leave unchanged
+        return ax
     if isinstance(ax, hist.axis.Integer):
         args = [ax.edges[0], ax.edges[-1]]
     elif isinstance(ax, hist.axis.Regular):
