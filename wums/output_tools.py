@@ -190,7 +190,7 @@ def write_logfile(
                 # String conversion needed for non-primitive types (e.g., complex number)
                 logf.write(json.dumps(v, default=encode_complex, indent=5).replace("\\n", "\n"))
             else:
-                logf.write(f"{k}: {v}\n")
+                logf.write(f"{k}:\n{v}\n")
 
 
 def write_indexfile(outpath, template_dir="Templates", indexname="index.php"):
