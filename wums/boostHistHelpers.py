@@ -549,6 +549,60 @@ def disableFlow(h, axes_names=None):
     return setFlow(h, axes_names=axes_names, under=False, over=False)
 
 
+def flowToExplicitBins(h, axes_names=None):
+    """Turn the under-/overflow bins of the given axes into explicit bins.
+
+    The flow bins become regular bins with an infinite outer edge, so their content
+    is kept by consumers that ignore flow bins. Useful when the same open ended
+    selection is stored in the overflow bin by one producer and in an explicit last
+    bin by another, to bring both to the latter convention.
+
+    Axes that have no flow bins, or that can not be expressed as a variable axis
+    (e.g. category or circular axes), are left untouched.
+    """
+    if axes_names is None:
+        axes_names = [n for n in h.axes.name]
+
+    if isinstance(axes_names, str):
+        axes_names = [axes_names]
+
+    for axis_name in axes_names:
+        if axis_name not in h.axes.name:
+            continue
+        ax = h.axes[axis_name]
+        if not (ax.traits.underflow or ax.traits.overflow):
+            continue
+        if (
+            not isinstance(
+                ax, (hist.axis.Regular, hist.axis.Variable, hist.axis.Integer)
+            )
+            or ax.traits.circular
+        ):
+            logger.warning(
+                f"Can not convert flow bins of axis '{axis_name}' of type {type(ax).__name__} into explicit bins, skip it"
+            )
+            continue
+
+        edges = list(ax.edges)
+        if ax.traits.underflow:
+            edges = [-np.inf, *edges]
+        if ax.traits.overflow:
+            edges = [*edges, np.inf]
+
+        ax_idx = [a.name for a in h.axes].index(axis_name)
+        axes = list(h.axes)
+        axes[ax_idx] = hist.axis.Variable(
+            edges, name=ax.name, label=ax.label, underflow=False, overflow=False
+        )
+        # the new axis has as many bins as the old one had including its flow bins,
+        # so the arrays including all flow bins have identical shapes
+        hnew = hist.Hist(*axes, name=h.name, storage=h.storage_type())
+        hnew.view(flow=True)[...] = h.view(flow=True)
+        h = hnew
+
+    return h
+
+
 def enableFlow(h, axes_names=None, default_values=0.0, default_variances=0.0):
     return setFlow(h, axes_names=axes_names, default_values=default_values, default_variances=default_variances, under=True, over=True)
 
