@@ -1423,6 +1423,10 @@ def plotRatio(
             flow="none",
         )
 
+    # NB -0 == 0, so colors[-fill_between::2] is colors[0::2] -- NOT empty -- when
+    # fill_between is 0. Slicing only makes sense for the bands actually drawn.
+    band_colors = colors[-fill_between::2] if fill_between else []
+    band_styles = linestyles[-fill_between::2] if fill_between else []
     extra_handles = [
         Polygon(
             [[0, 0], [0, 0], [0, 0], [0, 0]],
@@ -1431,7 +1435,7 @@ def plotRatio(
             linewidth=linewidth,
             alpha=alpha,
         )
-        for c, l in zip(colors[-fill_between::2], linestyles[-fill_between::2])
+        for c, l in zip(band_colors, band_styles)
     ]
     extra_labels = exclude_data(labels)[: len(extra_handles)]
 
