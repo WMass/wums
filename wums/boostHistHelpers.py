@@ -529,12 +529,16 @@ def setAxisFlow(ax, under=None, over=None):
         # category axes have no conventional under/overflow to toggle, and their
         # constructor takes neither 'underflow' nor 'circular' -> leave unchanged
         return ax
+    edges = ax.edges
+    if isinstance(ax.edges, np.ndarray):
+        edges = edges.tolist()
+
     if isinstance(ax, hist.axis.Integer):
-        args = [ax.edges[0], ax.edges[-1]]
+        args = [int(edges[0]), int(edges[-1])]
     elif isinstance(ax, hist.axis.Regular):
-        args = [ax.size, ax.edges[0], ax.edges[-1]]
+        args = [ax.size, edges[0], edges[-1]]
     else:
-        args = [ax.edges]
+        args = [edges]
 
     return type(ax)(
         *args,
