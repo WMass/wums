@@ -231,5 +231,6 @@ def get_filename_modifiers():
     """Return dictionary of filename modifiers for plot outputs"""
     return {
         "density": lambda args: getattr(args, "density", False),
-        "logy": lambda args: getattr(args, "logy", False)
+        "logy": lambda args: getattr(args, "logy", False),
+        "logx": lambda args: getattr(args, "logx", False),
     } # add whatever else is useful...
