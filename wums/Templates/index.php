@@ -127,5 +127,45 @@ foreach (glob("*") as $filename) {
 ?>
 </ul>
 </div>
+<div id="lb" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1000; text-align:center;">
+  <div id="lb-cap" style="color:#eee; font-size:12pt; padding:8px;"></div>
+  <img id="lb-img" style="max-width:96vw; max-height:calc(100vh - 50px); background:white;">
+</div>
+<script>
+// Lightbox: click a plot to enlarge; left/right arrows step through plots in page order, Esc closes.
+(function() {
+    var pics = Array.prototype.map.call(document.querySelectorAll("div.pic > a > img"), function(im) { return im.parentNode.getAttribute("href"); });
+    var lb = document.getElementById("lb"), img = document.getElementById("lb-img"), cap = document.getElementById("lb-cap");
+    var cur = -1;
+    function show(i) {
+        cur = (i + pics.length) % pics.length;
+        img.src = pics[cur];
+        cap.innerHTML = '<a style="color:#fcc" href="' + pics[cur] + '">' + pics[cur] + '</a> &nbsp; (' + (cur + 1) + '/' + pics.length + ') &nbsp; &larr; &rarr; to navigate, Esc to close';
+        lb.style.display = "block";
+        history.replaceState(null, "", "#" + encodeURIComponent(pics[cur]));
+    }
+    function hide() {
+        lb.style.display = "none"; cur = -1;
+        history.replaceState(null, "", location.pathname + location.search);
+    }
+    document.querySelectorAll("div.pic a").forEach(function(a) {
+        var i = pics.indexOf(a.getAttribute("href"));
+        if (i < 0) return;
+        a.addEventListener("click", function(e) {
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;  // keep open-in-new-tab
+            e.preventDefault(); show(i);
+        });
+    });
+    lb.addEventListener("click", function(e) { if (e.target === lb) hide(); });
+    document.addEventListener("keydown", function(e) {
+        if (cur < 0) return;
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") { show(cur + 1); e.preventDefault(); }
+        else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { show(cur - 1); e.preventDefault(); }
+        else if (e.key === "Escape") hide();
+    });
+    var h = decodeURIComponent(location.hash.slice(1));
+    if (h && pics.indexOf(h) >= 0) show(pics.indexOf(h));
+})();
+</script>
 </body>
 </html>
