@@ -1037,7 +1037,9 @@ def makeStackPlotWithRatio(
         min_y = np.min(h_inclusive.values() - h_inclusive.variances() ** 0.5)
         for x in x_vertLines_edges:
             ax1.plot([x, x], [min_y, max_y], linestyle="--", color="black")
-            ax2.plot([x, x], [rrange[0], rrange[1]], linestyle="--", color="black")
+            # There is no ratio axis under --noRatio.
+            if ax2 is not None:
+                ax2.plot([x, x], [rrange[0], rrange[1]], linestyle="--", color="black")
 
     addLegend(
         ax1,
